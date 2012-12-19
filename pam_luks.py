@@ -11,13 +11,13 @@
 
 import syslog
 import os
-
+import json
 
 def send_error_msg(pamh, msg):
     return send_msg(pamh, pamh.PAM_ERROR_MSG, "[luks] " + msg)
 
 def send_info_msg(pamh, msg):
-    return send_msg(pamh, pamh.PAM_TEXT_INFO, "[luks]" + msg)
+    return send_msg(pamh, pamh.PAM_TEXT_INFO, "[luks] " + msg)
 
 def send_msg(pamh, msg_style, msg):
     pammsg = pamh.Message(msg_style, msg)
@@ -42,7 +42,8 @@ def check_initial_passwd(pamh):
     return True
 
 def check_config_dict(config_dict):
-    return False
+    syslog.syslog("FIXME: check config file.")
+    return True
 
 def read_config_file(pamh):
     config_path = os.path.join("/home/", pamh.user, ".pam_luks")
@@ -70,7 +71,6 @@ def read_config_file(pamh):
 
 def pam_sm_authenticate(pamh, flags, argv):
     syslog.syslog("[+] Starting pam_luks")
-    syslog.syslog("[|] Checking password existance.")
     if check_initial_passwd(pamh) is False:
         return pamh.PAM_AUTH_ERR
     syslog.syslog("[+] Password in memory.")
