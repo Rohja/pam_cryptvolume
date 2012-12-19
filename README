@@ -1,1 +1,8 @@
-[To complete]
+= PACKAGES ADDED ON VM =
+
+* libpam-python
+* python-pam
+
+= PATHS =
+Python script: /lib/security/pam_luks.py
+Addition in pam configuration in /etc/pam.d/login
