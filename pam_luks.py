@@ -42,7 +42,13 @@ def check_initial_passwd(pamh):
     return True
 
 def check_config_dict(config_dict):
-    syslog.syslog("FIXME: check config file.")
+    if type(config_dict) is not dict:
+        return False
+    for entry in config_dict:
+        if 'from' not in config_dict or 'to' not in config_dict:
+            return False
+        if type(entry['from']) is not str or type(entry['to']) is not str:
+            return False
     return True
 
 def read_config_file(pamh):
