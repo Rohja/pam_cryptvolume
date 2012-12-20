@@ -42,12 +42,15 @@ def check_initial_passwd(pamh):
     return True
 
 def check_config_dict(config_dict):
-    if type(config_dict) is not dict:
+    if type(config_dict) is not list:
+        syslog.syslog("[x] Configuration file does not contains a list.")
         return False
     for entry in config_dict:
         if 'from' not in config_dict or 'to' not in config_dict:
+            syslog.syslog("[x] Missing field in configuration structure. (DEBUG - %s)" % str(entry))
             return False
         if type(entry['from']) is not str or type(entry['to']) is not str:
+            syslog.syslog("[x] Bad data type in configuration structure. (DEBUG - %s)" % str(entry))
             return False
     return True
 
@@ -72,6 +75,7 @@ def read_config_file(pamh):
         send_error_msg(pamh, "Error with configuration file.")
         return False
     if not check_config_dict(config_dict):
+        syslog.syslog("[x] Bad fields in configuration file.")
         return False
     return config_dict
 
