@@ -78,28 +78,31 @@ def pam_sm_authenticate(pamh, flags, argv):
     if config is False:
         return pamh.PAM_AUTH_ERR
 
-    syslog.syslog("[+] FIXME: check if already mounted")
-    trycount = 0
-    mounted = False
+    for entry in config:
+        pass
 
-    send_info_msg(pamh, "[luks] Trying to mount /home/%s/secure_data" % pamh.user)
-    while mounted == False and trycount < 3:
-        syslog.syslog("[~] FIXME: try mount")
-        # FIXME: Try mount
-        if mounted == True:
-            send_error_msg(pamh, "[luks] Successfuly mounted.")
-            syslog.syslog("[+] Successfuly mounted.")
-            return pamh.PAM_SUCCESS
-        else:
-            # FIXME: get explicit error message
-            send_error_msg(pamh, "[luks] Error while mounting volume.")
-            syslog.syslog("[-] Error while mounting volume")
-            pamh.authtok = ask_for_password(pamh)
-        trycount += 1
+    # syslog.syslog("[+] FIXME: check if already mounted")
+    # trycount = 0
+    # mounted = False
 
-    send_error_msg(pamh, "[luks] Fatal error, can't mount volume.")
-    syslog.syslog("[x] Authentification error.")
-    return pamh.PAM_AUTH_ERR
+    # send_info_msg(pamh, "[luks] Trying to mount /home/%s/secure_data" % pamh.user)
+    # while mounted == False and trycount < 3:
+    #     syslog.syslog("[~] FIXME: try mount")
+    #     # FIXME: Try mount
+    #     if mounted == True:
+    #         send_error_msg(pamh, "[luks] Successfuly mounted.")
+    #         syslog.syslog("[+] Successfuly mounted.")
+    #         return pamh.PAM_SUCCESS
+    #     else:
+    #         # FIXME: get explicit error message
+    #         send_error_msg(pamh, "[luks] Error while mounting volume.")
+    #         syslog.syslog("[-] Error while mounting volume")
+    #         pamh.authtok = ask_for_password(pamh)
+    #     trycount += 1
+
+    # send_error_msg(pamh, "[luks] Fatal error, can't mount volume.")
+    # syslog.syslog("[x] Authentification error.")
+    # return pamh.PAM_AUTH_ERR
 
 
 def pam_sm_setcred(pamh, flags, argv):
