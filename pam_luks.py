@@ -79,8 +79,10 @@ def pam_sm_authenticate(pamh, flags, argv):
         return pamh.PAM_AUTH_ERR
 
     for entry in config:
+        syslog.syslog("[~] Entry: %s" % str(entry))
         pass
 
+    return pamh.PAM_SUCCESS
     # syslog.syslog("[+] FIXME: check if already mounted")
     # trycount = 0
     # mounted = False
