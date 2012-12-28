@@ -13,6 +13,51 @@ import syslog
 import os
 import json
 
+# Tools
+
+def _decode_list(data):
+    rv = []
+    for item in data:
+        if isinstance(item, unicode):
+            item = item.encode('utf-8')
+        elif isinstance(item, list):
+            item = _decode_list(item)
+        elif isinstance(item, dict):
+            item = _decode_dict(item)
+        rv.append(item)
+    return rv
+
+def _decode_dict(data):
+    rv = {}
+    for key, value in data.iteritems():
+        if isinstance(key, unicode):
+           key = key.encode('utf-8')
+        if isinstance(value, unicode):
+           value = value.encode('utf-8')
+        elif isinstance(value, list):
+           value = _decode_list(value)
+        elif isinstance(value, dict):
+           value = _decode_dict(value)
+        rv[key] = value
+    return rv
+
+# Containers support
+
+class CryptSetupManager():
+    def __init__(self, from_, to_):
+        self.from_ = from_
+        self.to_ = to_
+
+    def mount(self):
+        syslog.syslog("[~] Trying to mount luks (%s -> %s)" % (self.from_, self.to_))
+        pass
+
+    def unmount(self):
+        syslog.syslog("[~] Trying to unmount luks")
+        pass
+
+# Functions
+
 def send_error_msg(pamh, msg):
     return send_msg(pamh, pamh.PAM_ERROR_MSG, "[luks] " + msg)
 
@@ -46,7 +91,7 @@ def check_config_dict(config_dict):
         syslog.syslog("[x] Configuration file does not contains a list.")
         return False
     for entry in config_dict:
-        if 'from' not in config_dict or 'to' not in config_dict:
+        if 'from' not in entry or 'to' not in entry:
             syslog.syslog("[x] Missing field in configuration structure. (DEBUG - %s)" % str(entry))
             return False
         if type(entry['from']) is not str or type(entry['to']) is not str:
@@ -69,7 +114,7 @@ def read_config_file(pamh):
         return False
     config_content = config_file.read()
     try:
-        config_dict = json.loads(config_content)
+        config_dict = json.loads(config_content, object_hook=_decode_dict)
     except ValueError:
         syslog.syslog("[x] Bad configuration file format.")
         send_error_msg(pamh, "Error with configuration file.")
@@ -78,6 +123,8 @@ def read_config_file(pamh):
         syslog.syslog("[x] Bad fields in configuration file.")
         return False
     return config_dict
+
+# Pam
 
 def pam_sm_authenticate(pamh, flags, argv):
     syslog.syslog("[+] Starting pam_luks")
@@ -90,32 +137,11 @@ def pam_sm_authenticate(pamh, flags, argv):
 
     for entry in config:
         syslog.syslog("[~] Entry: %s" % str(entry))
-        pass
+        luks = CryptSetupManager(entry["from"], entry["to"])
+        luks.mount()
 
     return pamh.PAM_SUCCESS
-    # syslog.syslog("[+] FIXME: check if already mounted")
-    # trycount = 0
-    # mounted = False
-
-    # send_info_msg(pamh, "[luks] Trying to mount /home/%s/secure_data" % pamh.user)
-    # while mounted == False and trycount < 3:
-    #     syslog.syslog("[~] FIXME: try mount")
-    #     # FIXME: Try mount
-    #     if mounted == True:
-    #         send_error_msg(pamh, "[luks] Successfuly mounted.")
-    #         syslog.syslog("[+] Successfuly mounted.")
-    #         return pamh.PAM_SUCCESS
-    #     else:
-    #         # FIXME: get explicit error message
-    #         send_error_msg(pamh, "[luks] Error while mounting volume.")
-    #         syslog.syslog("[-] Error while mounting volume")
-    #         pamh.authtok = ask_for_password(pamh)
-    #     trycount += 1
-
-    # send_error_msg(pamh, "[luks] Fatal error, can't mount volume.")
-    # syslog.syslog("[x] Authentification error.")
     # return pamh.PAM_AUTH_ERR
-
 
 def pam_sm_setcred(pamh, flags, argv):
     return pamh.PAM_SUCCESS
