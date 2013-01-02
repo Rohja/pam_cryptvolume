@@ -12,6 +12,8 @@
 import syslog
 import os
 import json
+import subprocess
+import hashlib
 
 # Tools
 
@@ -41,16 +43,27 @@ def _decode_dict(data):
         rv[key] = value
     return rv
 
+def getmd5(string):
+    m = hashlib.md5()
+    m.update(string)
+    return m.hexdigest()
+
 # Containers support
 
 class CryptSetupManager():
+    ERR_ACCESS = 234
+
     def __init__(self, from_, to_):
         self.from_ = from_
         self.to_ = to_
 
     def mount(self):
         syslog.syslog("[~] Trying to mount luks (%s -> %s)" % (self.from_, self.to_))
-        pass
+        cmd = ["/sbin/cryptsetup", "luksOpen", self.from_, getmd5(self.from_)]
+        syslog.syslog("[~] cmd = %s" % cmd)
+        ret = subprocess.call(cmd)
+        syslog.syslog("[~] Subprocess return value = %d" % ret)
+        return ret
 
     def unmount(self):
         syslog.syslog("[~] Trying to unmount luks")
