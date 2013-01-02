@@ -4,12 +4,53 @@
 * python-pam
 
 = PATHS =
+
 Python script: /lib/security/pam_luks.py
 Addition in pam configuration in /etc/pam.d/login
 
 = INSTALLATION =
-You need to add this line and the end of /etc/pam.d/login:
 
+You need to add this line and the end of /etc/pam.d/login:
 auth sufficient pam_python.so /lib/security/pam_luks.py
 
+= CONFIGURATION =
 
+For each user that will user pam_luks, you'll need to create a
+configuration file named .pam_luks (rw-------) in /home/<username>.
+That file contains JSON formated data. The main list ([]) contains
+all the dictionary ({}) that will define which volumes should be
+mounted while a user log-in. Each dictionary need to contain at
+least two fields: "from" and "to".
+
+  <from> is a string. It's the path to the encrypted volume.
+  <to> is also a string. It's the path to the mount point for the
+    encrypted volume.
+
+Example of .pam_luks file:
+
+[
+  {
+    "from": "/dev/sdb1",
+    "to": "/home/myuser/mymountpoint"
+  },
+  {
+    "from": "/dev/sdh3",
+    "to": "/var/secret"
+  }
+]
+
+If there's an error with the configuration file or a volume, some
+details will be writen in your syslog auth file (maybe something
+like /var/log/auth.log...).
+
+= ISSUES =
+
+ATM... none ! :)
+
+= WARNING =
+
+There's no "error detection" while using cryptsetup so your
+volume NEED to be a VALID volume or everything will just "act
+randomly". You need to format your volume with a valid file
+system that can be detected while using the "mount" command
+as root.
