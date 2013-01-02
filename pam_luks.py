@@ -52,22 +52,39 @@ def getmd5(string):
 
 class CryptSetupManager():
     ERR_ACCESS = 234
+    ERR_ALREADYOPEN = 239
+    ERR_ALREADYMOUNT = 32
+    SUCCESS = 0
 
     def __init__(self, from_, to_):
         self.from_ = from_
         self.to_ = to_
 
-    def mount(self):
-        syslog.syslog("[~] Trying to mount luks (%s -> %s)" % (self.from_, self.to_))
-        cmd = ["/sbin/cryptsetup", "luksOpen", self.from_, getmd5(self.from_)]
-        syslog.syslog("[~] cmd = %s" % cmd)
-        ret = subprocess.call(cmd)
-        syslog.syslog("[~] Subprocess return value = %d" % ret)
+    def activate(self, passwd):
+        cmd = "echo '%s' | cryptsetup luksOpen %s %s" % (passwd, self.from_, getmd5(self.from_))
+        ret = subprocess.call(cmd, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
+        syslog.syslog("[~] ACTIVATE ret value = %d" % ret)
         return ret
 
-    def unmount(self):
-        syslog.syslog("[~] Trying to unmount luks")
-        pass
+    def mount(self):
+        cmd = "mount /dev/mapper/%s %s" % (getmd5(self.from_), self.to_)
+        ret = subprocess.call(cmd, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
+        syslog.syslog("[~] MOUNT ret value = %d" % ret)
+        return ret
+
+    # def deactivate(self):
+    #     syslog.syslog("[~] Trying to deactivate luks.")
+    #     cmd = "cryptsetup luksClose %s" % getmd5(self.from_)
+    #     ret = subprocess.call(cmd, shell=True)
+    #     syslog.syslog("[~] Subprocess return value = %d" % ret)
+    #     return ret
+
+    # def unmount(self):
+    #     syslog.syslog("[~] Trying to unmount luks")
+    #     cmd = "umount %s" % self.to_
+    #     ret = subprocess.call(cmd, shell=True)
+    #     syslog.syslog("[~] Subprocess return value = %d" % ret)
+    #     return ret
 
 # Functions
 
@@ -137,6 +154,42 @@ def read_config_file(pamh):
         return False
     return config_dict
 
+def try_mount(pamh, entry):
+    send_info_msg(pamh, "Trying to open and mount %s" % entry['from'])
+    syslog.syslog("[+] Activating and mounting entry: %s" % str(entry))
+    luks = CryptSetupManager(entry["from"], entry["to"])
+
+    try_count = 0
+    activated = False
+    password = pamh.authtok
+    while try_count < 3:
+        ret = luks.activate(password)
+        if ret == CryptSetupManager.ERR_ACCESS:
+            # ERROR - File not found or bad format or access refused.
+            break
+        elif ret == CryptSetupManager.ERR_ALREADYOPEN:
+            # Maybe SUCESS - Bad deconnection or already in use by someone else.
+            send_info_msg(pamh, "Luks volume %s already opened!" % entry['from'])
+            activated = True
+            break
+        elif ret == CryptSetupManager.SUCCESS:
+            # SUCESS - Activation seem ok.
+            send_info_msg(pamh, "Luks volume %s opened whit success!" % entry['from'])
+            activated = True
+            break
+        else:
+            password = ask_for_password(pamh)
+            try_count += 1
+
+    if activated:
+        ret = luks.mount()
+        if ret == CryptSetupManager.ERR_ALREADYMOUNT:
+            send_error_msg(pamh, "Luks volume already mounted!")
+        elif ret == CryptSetupManager.SUCCESS:
+            send_info_msg(pamh, "Luks volume mounted to %s." % entry['to'])
+    else:
+        send_error_msg(pamh, "Unable to activate volume %s!" % entry['from'])
+
 # Pam
 
 def pam_sm_authenticate(pamh, flags, argv):
@@ -149,9 +202,7 @@ def pam_sm_authenticate(pamh, flags, argv):
         return pamh.PAM_AUTH_ERR
 
     for entry in config:
-        syslog.syslog("[~] Entry: %s" % str(entry))
-        luks = CryptSetupManager(entry["from"], entry["to"])
-        luks.mount()
+        try_mount(pamh, entry)
 
     return pamh.PAM_SUCCESS
     # return pamh.PAM_AUTH_ERR
