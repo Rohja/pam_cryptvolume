@@ -51,7 +51,7 @@ def getmd5(string):
 # Containers support
 
 class CryptSetupManager():
-    ERR_ACCESS = 234
+    # ERR_ACCESS = 234
     ERR_ALREADYOPEN = 239
     ERR_ALREADYMOUNT = 32
     SUCCESS = 0
@@ -72,12 +72,12 @@ class CryptSetupManager():
         syslog.syslog("[~] MOUNT ret value = %d" % ret)
         return ret
 
-    # def deactivate(self):
-    #     syslog.syslog("[~] Trying to deactivate luks.")
-    #     cmd = "cryptsetup luksClose %s" % getmd5(self.from_)
-    #     ret = subprocess.call(cmd, shell=True)
-    #     syslog.syslog("[~] Subprocess return value = %d" % ret)
-    #     return ret
+    def deactivate(self):
+        syslog.syslog("[~] Trying to deactivate luks.")
+        cmd = "cryptsetup luksClose %s" % getmd5(self.from_)
+        ret = subprocess.call(cmd, shell=True)
+        syslog.syslog("[~] Subprocess return value = %d" % ret)
+        return ret
 
     # def unmount(self):
     #     syslog.syslog("[~] Trying to unmount luks")
@@ -164,10 +164,11 @@ def try_mount(pamh, entry):
     password = pamh.authtok
     while try_count < 3:
         ret = luks.activate(password)
-        if ret == CryptSetupManager.ERR_ACCESS:
-            # ERROR - File not found or bad format or access refused.
-            break
-        elif ret == CryptSetupManager.ERR_ALREADYOPEN:
+        # if ret == CryptSetupManager.ERR_ACCESS:
+        #     # ERROR - File not found or bad format or access refused.
+        #     send_error_msg(pamh, "Luks volume %s not found or access denied!" % entry['from'])
+        #     break
+        if ret == CryptSetupManager.ERR_ALREADYOPEN:
             # Maybe SUCESS - Bad deconnection or already in use by someone else.
             send_info_msg(pamh, "Luks volume %s already opened!" % entry['from'])
             activated = True
@@ -177,9 +178,8 @@ def try_mount(pamh, entry):
             send_info_msg(pamh, "Luks volume %s opened whit success!" % entry['from'])
             activated = True
             break
-        else:
-            password = ask_for_password(pamh)
-            try_count += 1
+        password = ask_for_password(pamh)
+        try_count += 1
 
     if activated:
         ret = luks.mount()
@@ -187,6 +187,8 @@ def try_mount(pamh, entry):
             send_error_msg(pamh, "Luks volume already mounted!")
         elif ret == CryptSetupManager.SUCCESS:
             send_info_msg(pamh, "Luks volume mounted to %s." % entry['to'])
+        else:
+            luks.deactivate()
     else:
         send_error_msg(pamh, "Unable to activate volume %s!" % entry['from'])
 
