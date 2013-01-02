@@ -122,10 +122,12 @@ def check_config_dict(config_dict):
         return False
     for entry in config_dict:
         if 'from' not in entry or 'to' not in entry:
-            syslog.syslog("[x] Missing field in configuration structure. (DEBUG - %s)" % str(entry))
+            syslog.syslog("[x] Missing field in configuration structure. (%s)"
+                          % str(entry))
             return False
         if type(entry['from']) is not str or type(entry['to']) is not str:
-            syslog.syslog("[x] Bad data type in configuration structure. (DEBUG - %s)" % str(entry))
+            syslog.syslog("[x] Bad data type in configuration structure. (%s)"
+                          % str(entry))
             return False
     return True
 
@@ -164,10 +166,6 @@ def try_mount(pamh, entry):
     password = pamh.authtok
     while try_count < 3:
         ret = luks.activate(password)
-        # if ret == CryptSetupManager.ERR_ACCESS:
-        #     # ERROR - File not found or bad format or access refused.
-        #     send_error_msg(pamh, "Luks volume %s not found or access denied!" % entry['from'])
-        #     break
         if ret == CryptSetupManager.ERR_ALREADYOPEN:
             # Maybe SUCESS - Bad deconnection or already in use by someone else.
             send_info_msg(pamh, "Luks volume %s already opened!" % entry['from'])
@@ -192,6 +190,26 @@ def try_mount(pamh, entry):
     else:
         send_error_msg(pamh, "Unable to activate volume %s!" % entry['from'])
 
+def try_umount_and_deactivate(pamh, entry):
+    send_info_msg(pamh, "Trying to umount and deactivate %s" % entry['to'])
+    syslog.syslog("[+] Deactivating and umounting entry: %s" % str(entry))
+    luks = CryptSetupManager(entry["from"], entry["to"])
+
+    ret1 = subprocess.call("/bin/umount /dev/mapper/%s" % getmd5(entry['from']),
+                           shell=True,
+                           stderr=subprocess.PIPE,
+                           stdout=subprocess.PIPE)
+    if ret1 != CryptSetupManager.SUCCESS:
+        send_info_msg(pamh, "Can't umount %s." % entry['to'])
+    ret2 = subprocess.call("cryptsetup luksClose %s" % getmd5(entry['from']),
+                           shell=True,
+                           stderr=subprocess.PIPE,
+                           stdout=subprocess.PIPE)
+    if ret2 != CryptSetupManager.SUCCESS:
+        send_info_msg(pamh, "Can't close volume %s" % entry['from'])
+    if CryptSetupManager.SUCCESS in [ret1, ret2]:
+        send_info_msg(pamh, "Success!")
+
 # Pam
 
 def pam_sm_authenticate(pamh, flags, argv):
@@ -208,6 +226,17 @@ def pam_sm_authenticate(pamh, flags, argv):
 
     return pamh.PAM_SUCCESS
     # return pamh.PAM_AUTH_ERR
+
+def pam_sm_end(pamh):
+    syslog.syslog("[+] Cleaning pam_luks for user %s" % pamh.user)
+    config = read_config_file(pamh)
+    if config is False:
+        return pamh.PAM_AUTH_ERR
+
+    for entry in config:
+        try_umount_and_deactivate(pamh, entry)
+
+    return pamh.PAM_SUCCESS
 
 def pam_sm_setcred(pamh, flags, argv):
     return pamh.PAM_SUCCESS
