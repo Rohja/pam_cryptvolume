@@ -63,13 +63,13 @@ class CryptSetupManager():
     def activate(self, passwd):
         cmd = "echo '%s' | cryptsetup luksOpen %s %s" % (passwd, self.from_, getmd5(self.from_))
         ret = subprocess.call(cmd, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
-        syslog.syslog("[~] ACTIVATE ret value = %d" % ret)
+        # syslog.syslog("[~] ACTIVATE ret value = %d" % ret)
         return ret
 
     def mount(self):
         cmd = "mount /dev/mapper/%s %s" % (getmd5(self.from_), self.to_)
         ret = subprocess.call(cmd, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
-        syslog.syslog("[~] MOUNT ret value = %d" % ret)
+        # syslog.syslog("[~] MOUNT ret value = %d" % ret)
         return ret
 
     def deactivate(self):
@@ -102,7 +102,7 @@ def send_msg(pamh, msg_style, msg):
 def ask_for_password(pamh):
     passmsg = pamh.Message(pamh.PAM_PROMPT_ECHO_OFF, "Luks volume key: ")
     rsp = pamh.conversation(passmsg)
-    syslog.syslog("[~] Got password: " + rsp.resp)
+    # syslog.syslog("[~] Got password: " + rsp.resp)
     return rsp.resp
 
 def check_initial_passwd(pamh):
