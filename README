@@ -6,11 +6,11 @@
 = PATHS =
 
 Python script: /lib/security/pam_luks.py
-Addition in pam configuration in /etc/pam.d/login
+Addition in pam configuration in /etc/pam.d/common-auth
 
 = INSTALLATION =
 
-You need to add this line and the end of /etc/pam.d/login:
+You need to add this line and the end of /etc/pam.d/common-auth:
 auth sufficient pam_python.so /lib/security/pam_luks.py
 
 = CONFIGURATION =
