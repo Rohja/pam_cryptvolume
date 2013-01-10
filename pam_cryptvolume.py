@@ -5,8 +5,7 @@
 ## Made by Paul "Rohja" Lesellier
 ## Login   <rohja@rohja.com>
 ##
-## Started on  Wed Dec 19 14:32:37 2012 paul lesellier
-## Last update Wed Dec 19 14:32:37 2012 paul lesellier
+## Started on  Wed Dec 19 14:32:37 2012
 ##
 
 import syslog
