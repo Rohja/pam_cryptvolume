@@ -43,6 +43,14 @@ If there's an error with the configuration file or a volume, some
 details will be writen in your syslog auth file (maybe something
 like /var/log/auth.log...).
 
+= CONFIGURATION MANAGER =
+
+The script named cryptvolume-conf.py is a configuration manager,
+it allow you to add/remove/list volumes in your configuration and
+check if the configuration is json-complient with all the required
+fields. It also try to check is the volume is a valid Luks volume
+and display a message if it's not.
+
 = ISSUES =
 
 ATM... none ! :)
