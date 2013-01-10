@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 ##
-## pam_luks.py for PAM_LUKS in /home/rohja/epitech-crypto-pamela
+## pam_cryptvolume.py for PAM_CRYPTVOLUME in /home/rohja/epitech-crypto-pamela
 ##
 ## Made by Paul "Rohja" Lesellier
 ## Login   <rohja@rohja.com>
@@ -51,7 +51,6 @@ def getmd5(string):
 # Containers support
 
 class CryptSetupManager():
-    # ERR_ACCESS = 234
     ERR_ALREADYOPEN = 239
     ERR_ALREADYMOUNT = 32
     SUCCESS = 0
@@ -63,13 +62,11 @@ class CryptSetupManager():
     def activate(self, passwd):
         cmd = "echo '%s' | cryptsetup luksOpen %s %s" % (passwd, self.from_, getmd5(self.from_))
         ret = subprocess.call(cmd, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
-        # syslog.syslog("[~] ACTIVATE ret value = %d" % ret)
         return ret
 
     def mount(self):
         cmd = "mount /dev/mapper/%s %s" % (getmd5(self.from_), self.to_)
         ret = subprocess.call(cmd, shell=True, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
-        # syslog.syslog("[~] MOUNT ret value = %d" % ret)
         return ret
 
     def deactivate(self):
@@ -78,13 +75,6 @@ class CryptSetupManager():
         ret = subprocess.call(cmd, shell=True)
         syslog.syslog("[~] Subprocess return value = %d" % ret)
         return ret
-
-    # def unmount(self):
-    #     syslog.syslog("[~] Trying to unmount luks")
-    #     cmd = "umount %s" % self.to_
-    #     ret = subprocess.call(cmd, shell=True)
-    #     syslog.syslog("[~] Subprocess return value = %d" % ret)
-    #     return ret
 
 # Functions
 
@@ -102,7 +92,6 @@ def send_msg(pamh, msg_style, msg):
 def ask_for_password(pamh):
     passmsg = pamh.Message(pamh.PAM_PROMPT_ECHO_OFF, "Luks volume key: ")
     rsp = pamh.conversation(passmsg)
-    # syslog.syslog("[~] Got password: " + rsp.resp)
     return rsp.resp
 
 def check_initial_passwd(pamh):
@@ -132,7 +121,7 @@ def check_config_dict(config_dict):
     return True
 
 def read_config_file(pamh):
-    config_path = os.path.join("/home/", pamh.user, ".pam_luks")
+    config_path = os.path.join("/home/", pamh.user, ".pam_cryptvolume")
     syslog.syslog("[+] Reading configuration file: %s." % config_path)
     if not os.path.isfile(config_path):
         syslog.syslog("[x] Configuration file %s is not a file or don't exist." % config_path)
@@ -213,7 +202,7 @@ def try_umount_and_deactivate(pamh, entry):
 # Pam
 
 def pam_sm_authenticate(pamh, flags, argv):
-    syslog.syslog("[+] Starting pam_luks")
+    syslog.syslog("[+] Starting pam_cryptvolume")
     if check_initial_passwd(pamh) is False:
         return pamh.PAM_AUTH_ERR
     syslog.syslog("[+] Password in memory.")
@@ -225,10 +214,9 @@ def pam_sm_authenticate(pamh, flags, argv):
         try_mount(pamh, entry)
 
     return pamh.PAM_SUCCESS
-    # return pamh.PAM_AUTH_ERR
 
 def pam_sm_end(pamh):
-    syslog.syslog("[+] Cleaning pam_luks for user %s" % pamh.user)
+    syslog.syslog("[+] Cleaning pam_cryptvolume for user %s" % pamh.user)
     config = read_config_file(pamh)
     if config is False:
         return pamh.PAM_AUTH_ERR
