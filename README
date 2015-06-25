@@ -1,3 +1,7 @@
+= WARNING =
+
+This code is not meant to be secure. It's for educational purpose only. Use it at your own risks.
+
 = PACKAGES ADDED ON VM =
 
 * libpam-python
